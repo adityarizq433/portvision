@@ -2,11 +2,16 @@
 
 Aplikasi web untuk memantau status port jaringan secara real-time, dibangun dengan Laravel, Inertia.js, React, dan terintegrasi dengan LibreNMS.
 
+Ada dua mode menjalankan proyek ini:
+
+- **Mode Production / Backend** — pakai Docker, untuk server utama atau backend developer
+- **Mode Frontend Dev** — pakai Node.js lokal, untuk frontend developer yang fokus ke UI/React
+
 ---
 
-## Kebutuhan Sistem
+## Mode 1 — Docker (Backend / Production)
 
-Pastikan semua software berikut sudah terinstall sebelum memulai:
+### Kebutuhan Sistem
 
 | Software | Versi Minimum |
 |----------|---------------|
@@ -18,7 +23,7 @@ Pastikan semua software berikut sudah terinstall sebelum memulai:
 
 ---
 
-## Persiapan Sebelum Menjalankan
+## Persiapan Sebelum Menjalankan (Mode Docker)
 
 ### 1. Clone repository
 
@@ -89,7 +94,74 @@ docker compose exec app php artisan migrate
 
 ---
 
-## Konfigurasi LibreNMS
+## Mode 2 — Frontend Dev (untuk Frontend Developer)
+
+Gunakan mode ini jika kamu hanya mengerjakan bagian UI/React dan tidak perlu menjalankan backend sendiri. Backend tetap berjalan di server utama (PC server kantor).
+
+### Kebutuhan Sistem
+
+| Software | Versi Minimum |
+|----------|---------------|
+| Node.js | 18.x |
+| npm | 9.x |
+| Git | - |
+
+> Tidak perlu Docker, PHP, atau Composer.
+
+### Langkah-langkah
+
+#### 1. Clone repository
+
+```bash
+git clone <url-repo-ini>
+cd portvision
+```
+
+#### 2. Install dependencies
+
+```bash
+npm install
+```
+
+#### 3. Buat file `.env`
+
+```bash
+cp .env.example .env
+```
+
+Ubah `APP_URL` agar mengarah ke server backend yang sudah berjalan:
+
+```
+APP_URL=http://<ip-pc-server>:8000
+VITE_APP_NAME=Portvision
+```
+
+> Tanya ke backend developer untuk mendapatkan IP server yang benar.
+
+#### 4. Jalankan Vite dev server
+
+```bash
+npm run dev
+```
+
+#### 5. Buka di browser
+
+```
+http://localhost:5173
+```
+
+Perubahan di file React (`resources/js/`) akan langsung terlihat di browser tanpa perlu refresh manual (Hot Module Replacement).
+
+### Catatan Penting untuk Frontend Developer
+
+- Semua halaman React ada di folder `resources/js/Pages/`
+- Komponen reusable ada di `resources/js/Components/`
+- Stack yang dipakai: **React 18 + TypeScript + Tailwind CSS + Inertia.js**
+- Jangan ubah file di luar folder `resources/js/` kecuali ada koordinasi dengan backend
+
+---
+
+## Konfigurasi LibreNMS (khusus Backend / Docker)
 
 Setelah aplikasi berjalan, hubungkan ke LibreNMS melalui halaman **Settings** di dalam aplikasi web. Masukkan:
 
@@ -106,15 +178,14 @@ docker compose exec app php artisan portvision:sync-devices
 
 ## Mengakses Aplikasi
 
-Buka browser dan akses:
-
-```
-http://localhost:8000
-```
+| Mode | URL |
+|------|-----|
+| Docker (backend/production) | `http://localhost:8000` |
+| Frontend dev (Vite) | `http://localhost:5173` |
 
 ---
 
-## Menghentikan Aplikasi
+## Menghentikan Aplikasi (Mode Docker)
 
 ```bash
 docker compose down
@@ -130,6 +201,8 @@ docker compose down -v
 
 ## Perintah Berguna
 
+### Docker
+
 | Perintah | Fungsi |
 |----------|--------|
 | `docker compose logs -f app` | Lihat log aplikasi secara live |
@@ -139,13 +212,18 @@ docker compose down -v
 | `docker compose exec app php artisan tinker` | Masuk ke console PHP |
 | `docker compose restart app` | Restart container app |
 
+### Frontend Dev
+
+| Perintah | Fungsi |
+|----------|--------|
+| `npm run dev` | Jalankan Vite dev server |
+| `npm run build` | Build aset untuk production |
+
 ---
 
 ## Mengukur Delay Deteksi Port
 
-Script `measure-delay.ps1` digunakan untuk mengukur seberapa cepat aplikasi mendeteksi perubahan status port (cabut/colok kabel).
-
-Jalankan di PowerShell:
+Script `measure-delay.ps1` digunakan untuk mengukur seberapa cepat aplikasi mendeteksi perubahan status port (cabut/colok kabel). Jalankan di PowerShell pada PC server:
 
 ```powershell
 .\measure-delay.ps1
