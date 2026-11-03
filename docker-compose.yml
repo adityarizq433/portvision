@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+    container_name: portvision_app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+      - ./storage:/var/www/storage
+      - ./docker/opcache.ini:/usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - portvision
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: portvision_nginx
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:80"
+    volumes:
+      - .:/var/www
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - portvision
+
+  db:
+    image: mysql:8.0
+    container_name: portvision_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-portvision}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
+      MYSQL_USER: ${DB_USERNAME:-portvision}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "${DB_PORT_FORWARD:-3307}:3306"
+    volumes:
+      - portvision_db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-secret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - portvision
+
+  redis:
+    image: redis:7-alpine
+    container_name: portvision_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT_FORWARD:-6380}:6379"
+    volumes:
+      - portvision_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - portvision
+
+  queue:
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+    container_name: portvision_queue
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan queue:work redis --sleep=3 --tries=3 --timeout=90
+    volumes:
+      - .:/var/www
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - portvision
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+    container_name: portvision_scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan schedule:work
+    volumes:
+      - .:/var/www
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - portvision
+
+  poller:
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+    container_name: portvision_poller
+    restart: unless-stopped
+    working_dir: /var/www
+    command: sh -c "while true; do php artisan portvision:poll-ports; sleep 2; done"
+    volumes:
+      - .:/var/www
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - portvision
+
+networks:
+  portvision:
+    driver: bridge
+
+volumes:
+  portvision_db:
+  portvision_redis:
