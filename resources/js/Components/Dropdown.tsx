@@ -38,12 +38,15 @@ const Trigger = ({ children }: PropsWithChildren) => {
 
     return (
         <>
-            <div onClick={toggleOpen}>{children}</div>
+            <button type="button" onClick={toggleOpen} aria-haspopup="menu" aria-expanded={open} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-lg">
+                {children}
+            </button>
 
             {open && (
                 <div
                     className="fixed inset-0 z-40"
                     onClick={() => setOpen(false)}
+                    aria-hidden="true"
                 ></div>
             )}
         </>
@@ -114,7 +117,7 @@ const DropdownLink = ({
         <Link
             {...props}
             className={
-                'block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none ' +
+                'block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus-visible:ring-2 focus:ring-primary-400 ' +
                 className
             }
         >

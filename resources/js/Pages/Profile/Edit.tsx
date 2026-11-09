@@ -6,36 +6,34 @@ import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 
 export default function Edit({
-    mustVerifyEmail,
     status,
-}: PageProps<{ mustVerifyEmail: boolean; status?: string }>) {
+}: PageProps<{ status?: string }>) {
     return (
         <AuthenticatedLayout
             header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Profile
-                </h2>
+                <div>
+                    <h1 className="text-lg font-bold tracking-tight text-navy-900">
+                        PENGATURAN PROFIL OPERATOR
+                    </h1>
+                    <p className="mt-0.5 text-xs text-gray-500 font-mono">
+                        Kelola informasi akun, kata sandi, dan kredensial akses
+                    </p>
+                </div>
             }
         >
-            <Head title="Profile" />
+            <Head title="Pengaturan Profil" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <UpdateProfileInformationForm
-                            mustVerifyEmail={mustVerifyEmail}
-                            status={status}
-                            className="max-w-xl"
-                        />
-                    </div>
+            <div className="max-w-4xl space-y-6">
+                <div className="pv-card p-6">
+                    <UpdateProfileInformationForm status={status} className="max-w-xl" />
+                </div>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <UpdatePasswordForm className="max-w-xl" />
-                    </div>
+                <div className="pv-card p-6">
+                    <UpdatePasswordForm className="max-w-xl" />
+                </div>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <DeleteUserForm className="max-w-xl" />
-                    </div>
+                <div className="pv-card p-6 border-red-200 bg-red-50/20">
+                    <DeleteUserForm className="max-w-xl" />
                 </div>
             </div>
         </AuthenticatedLayout>

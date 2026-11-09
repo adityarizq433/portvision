@@ -4,9 +4,9 @@ import { User, Role } from '@/types/models';
 import { PageProps } from '@/types';
 import React, { useState } from 'react';
 
-interface Props {
-    users: User[];
-}
+interface Props { users: User[]; }
+
+const inputCls = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-navy-900 placeholder-gray-500 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-400/20 transition';
 
 export default function UsersIndex({ users }: Props) {
     const { auth } = usePage<PageProps>().props;
@@ -18,66 +18,33 @@ export default function UsersIndex({ users }: Props) {
     const [password, setPassword] = useState('');
     const [role, setRole] = useState<Role>('viewer');
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Edit modal
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [editPassword, setEditPassword] = useState('');
 
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        router.post(
-            route('users.store'),
-            {
-                name,
-                email,
-                password,
-                role,
-            },
-            {
-                onSuccess: () => {
-                    setName('');
-                    setEmail('');
-                    setPassword('');
-                    setRole('viewer');
-                    setIsCreating(false);
-                },
-                onFinish: () => setIsSubmitting(false),
-            }
-        );
+        router.post(route('users.store'), { name, email, password, role }, {
+            onSuccess: () => { setName(''); setEmail(''); setPassword(''); setRole('viewer'); setIsCreating(false); },
+            onFinish: () => setIsSubmitting(false),
+        });
     };
 
     const handleUpdate = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingUser) return;
         setIsSubmitting(true);
-
-        const payload: any = {
-            name: editingUser.name,
-            email: editingUser.email,
-            role: editingUser.role,
-        };
-        if (editPassword) {
-            payload.password = editPassword;
-        }
-
+        const payload: any = { name: editingUser.name, email: editingUser.email, role: editingUser.role };
+        if (editPassword) payload.password = editPassword;
         router.patch(route('users.update', editingUser.id), payload, {
-            onSuccess: () => {
-                setEditingUser(null);
-                setEditPassword('');
-            },
+            onSuccess: () => { setEditingUser(null); setEditPassword(''); },
             onFinish: () => setIsSubmitting(false),
         });
     };
 
     const handleDelete = (user: User) => {
-        if (user.id === currentUser.id) {
-            alert('You cannot delete your own account.');
-            return;
-        }
-        if (!confirm(`Are you sure you want to delete operator "${user.name}"?`)) {
-            return;
-        }
+        if (user.id === currentUser.id) { alert('Anda tidak dapat menghapus akun Anda sendiri.'); return; }
+        if (!confirm(`Hapus operator "${user.name}"?`)) return;
         router.delete(route('users.destroy', user.id));
     };
 
@@ -86,179 +53,85 @@ export default function UsersIndex({ users }: Props) {
             header={
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-3">
-                            <span>OPERATOR ACCESS & ROLES</span>
-                            <span className="text-xs font-mono font-normal rounded-full bg-slate-800 text-slate-300 border border-slate-700 px-2.5 py-0.5">
-                                {users.length} Operators
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-lg font-bold tracking-tight text-navy-900">HAK AKSES &amp; PERAN OPERATOR</h1>
+                            <span className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-gray-600">
+                                {users.length} Operator
                             </span>
-                        </h1>
-                        <p className="mt-1 text-xs text-slate-400 font-mono">
-                            Admin (Read & Write configuration) and Viewer (Read-only monitoring)
-                        </p>
+                        </div>
+                        <p className="mt-0.5 font-mono text-xs text-gray-500">Admin (Kontrol Penuh) dan Viewer (Pemantauan Saja)</p>
                     </div>
-
-                    <button
-                        type="button"
-                        onClick={() => setIsCreating(!isCreating)}
-                        className="inline-flex items-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-cyan-900/30 hover:bg-cyan-500 transition-all"
-                    >
-                        <span>{isCreating ? 'Cancel' : '+ Add Operator'}</span>
+                    <button type="button" onClick={() => setIsCreating(!isCreating)} className="pv-btn pv-btn--primary">
+                        {isCreating ? 'Batal' : '+ Tambah Operator'}
                     </button>
                 </div>
             }
         >
-            <Head title="Operator Management" />
+            <Head title="Manajemen Operator" />
 
-            {/* Create Operator Form */}
+            {/* Create Form */}
             {isCreating && (
-                <div className="mb-8 rounded-xl border border-cyan-500/30 bg-slate-900/90 p-5 backdrop-blur-md shadow-2xl">
-                    <h3 className="text-sm font-semibold tracking-wide text-white uppercase font-mono mb-4">
-                        Add New Network Operator
-                    </h3>
-                    <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div className="pv-card mb-6 p-5 border-primary-200 ring-1 ring-primary-100">
+                    <h3 className="mb-4 text-sm font-bold uppercase tracking-widest text-navy-900">Tambah Operator Jaringan Baru</h3>
+                    <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Full Name *
-                            </label>
-                            <input
-                                type="text"
-                                required
-                                placeholder="e.g. Alice Engineer"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
-                            />
+                            <label htmlFor="user-name" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Nama Lengkap *</label>
+                            <input id="user-name" type="text" required placeholder="Contoh: Budi Teknisi" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Email Address *
-                            </label>
-                            <input
-                                type="email"
-                                required
-                                placeholder="operator@portvision.local"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
-                            />
+                            <label htmlFor="user-email" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Alamat Email *</label>
+                            <input id="user-email" type="email" required placeholder="operator@portvision.local" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Password *
-                            </label>
-                            <input
-                                type="password"
-                                required
-                                minLength={8}
-                                placeholder="At least 8 characters"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
-                            />
+                            <label htmlFor="user-pass" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Kata Sandi *</label>
+                            <input id="user-pass" type="password" required minLength={8} placeholder="Minimal 8 karakter" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                System Role *
-                            </label>
-                            <select
-                                value={role}
-                                onChange={(e) => setRole(e.target.value as Role)}
-                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
-                            >
-                                <option value="viewer">Viewer (Read-only)</option>
-                                <option value="admin">Admin (Full Control)</option>
+                            <label htmlFor="user-role" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Peran *</label>
+                            <select id="user-role" value={role} onChange={(e) => setRole(e.target.value as Role)} className={inputCls}>
+                                <option value="viewer">Viewer (Hanya Lihat)</option>
+                                <option value="admin">Admin (Kontrol Penuh)</option>
                             </select>
                         </div>
-                        <div className="sm:col-span-4 flex justify-end gap-2 mt-2">
-                            <button
-                                type="button"
-                                onClick={() => setIsCreating(false)}
-                                className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="rounded-lg bg-cyan-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-cyan-500 disabled:opacity-50"
-                            >
-                                {isSubmitting ? 'Creating...' : 'Create Operator'}
+                        <div className="flex justify-end gap-2 sm:col-span-4">
+                            <button type="button" onClick={() => setIsCreating(false)} className="pv-btn pv-btn--outline">Batal</button>
+                            <button type="submit" disabled={isSubmitting} className="pv-btn pv-btn--primary">
+                                {isSubmitting ? 'Membuat…' : 'Buat Operator'}
                             </button>
                         </div>
                     </form>
                 </div>
             )}
 
-            {/* Edit User Modal */}
+            {/* Edit Modal */}
             {editingUser && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-                        <h3 className="text-base font-bold text-white mb-4">Edit Operator</h3>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-900/50 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Ubah operator">
+                    <div className="w-full max-w-md pv-card p-6 shadow-2xl">
+                        <h3 className="mb-5 text-base font-bold text-navy-900">Ubah Data Operator</h3>
                         <form onSubmit={handleUpdate} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1">
-                                    Full Name *
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={editingUser.name}
-                                    onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
-                                />
+                                <label htmlFor="user-edit-name" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Nama Lengkap *</label>
+                                <input id="user-edit-name" type="text" required value={editingUser.name} onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })} className={inputCls} />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1">
-                                    Email Address *
-                                </label>
-                                <input
-                                    type="email"
-                                    required
-                                    value={editingUser.email}
-                                    onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
-                                />
+                                <label htmlFor="user-edit-email" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Alamat Email *</label>
+                                <input id="user-edit-email" type="email" required value={editingUser.email} onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })} className={inputCls} />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1">
-                                    New Password (leave empty to keep current)
-                                </label>
-                                <input
-                                    type="password"
-                                    minLength={8}
-                                    placeholder="••••••••"
-                                    value={editPassword}
-                                    onChange={(e) => setEditPassword(e.target.value)}
-                                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
-                                />
+                                <label htmlFor="user-edit-pass" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Kata Sandi Baru (kosongkan jika tidak diubah)</label>
+                                <input id="user-edit-pass" type="password" minLength={8} placeholder="••••••••" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} className={inputCls} />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1">
-                                    Role
-                                </label>
-                                <select
-                                    value={editingUser.role}
-                                    onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as Role })}
-                                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
-                                >
-                                    <option value="viewer">Viewer (Read-only)</option>
-                                    <option value="admin">Admin (Full Control)</option>
+                                <label htmlFor="user-edit-role" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Peran</label>
+                                <select id="user-edit-role" value={editingUser.role} onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as Role })} className={inputCls}>
+                                <option value="viewer">Viewer (Hanya Lihat)</option>
+                                <option value="admin">Admin (Kontrol Penuh)</option>
                                 </select>
                             </div>
                             <div className="flex justify-end gap-2 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setEditingUser(null)}
-                                    className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="rounded-lg bg-cyan-600 px-4 py-2 text-xs font-semibold text-white hover:bg-cyan-500 disabled:opacity-50"
-                                >
-                                    {isSubmitting ? 'Updating...' : 'Update Operator'}
+                                <button type="button" onClick={() => setEditingUser(null)} className="pv-btn pv-btn--outline">Batal</button>
+                                <button type="submit" disabled={isSubmitting} className="pv-btn pv-btn--primary">
+                                    {isSubmitting ? 'Memperbarui…' : 'Perbarui Operator'}
                                 </button>
                             </div>
                         </form>
@@ -266,69 +139,55 @@ export default function UsersIndex({ users }: Props) {
                 </div>
             )}
 
-            {/* Operators Table */}
-            <div className="rounded-xl border border-slate-800 bg-slate-900/80 overflow-hidden backdrop-blur-md shadow-lg">
-                <table className="w-full text-left text-xs">
+            {/* Users Table */}
+            <div className="pv-card overflow-hidden">
+                <div className="overflow-x-auto">
+                <table className="pv-table" aria-label="Daftar operator sistem">
                     <thead>
-                        <tr className="border-b border-slate-800 bg-slate-950/60 text-slate-400 font-mono uppercase">
-                            <th className="py-3.5 px-4">Operator</th>
-                            <th className="py-3.5 px-4">Email Address</th>
-                            <th className="py-3.5 px-4">Role Permission</th>
-                            <th className="py-3.5 px-4">Joined At</th>
-                            <th className="py-3.5 px-4 text-right">Actions</th>
+                        <tr>
+                            <th scope="col">Operator</th>
+                            <th scope="col">Alamat Email</th>
+                            <th scope="col">Peran</th>
+                            <th scope="col">Bergabung</th>
+                            <th scope="col" className="text-right">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-mono">
-                        {users.map((user) => {
+                    <tbody>
+                        {users.length === 0 ? (
+                            <tr><td colSpan={5} className="py-16 text-center text-sm text-gray-500">Belum ada operator terdaftar. Tambahkan operator pertama dengan tombol di atas.</td></tr>
+                        ) : users.map((user) => {
                             const isSelf = user.id === currentUser.id;
                             const isUserAdmin = user.role === 'admin';
-
                             return (
-                                <tr key={user.id} className="hover:bg-slate-800/40 transition-colors">
-                                    <td className="py-3.5 px-4 font-sans font-bold text-white flex items-center gap-2.5">
-                                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 border border-slate-700 text-xs font-mono font-bold text-slate-300">
-                                            {user.name.charAt(0).toUpperCase()}
+                                <tr key={user.id}>
+                                    <td>
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-700">
+                                                {user.name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <span className="font-semibold text-navy-900">{user.name}</span>
+                                            {isSelf && (
+                                                <span className="rounded-md bg-primary-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary-600">ANDA</span>
+                                            )}
                                         </div>
-                                        <span>{user.name}</span>
-                                        {isSelf && (
-                                            <span className="rounded bg-cyan-950 border border-cyan-800 text-cyan-400 text-[10px] px-1.5 py-0.2 font-mono">
-                                                You
-                                            </span>
-                                        )}
                                     </td>
-                                    <td className="py-3.5 px-4 text-slate-300">
-                                        {user.email}
-                                    </td>
-                                    <td className="py-3.5 px-4">
-                                        <span
-                                            className={`inline-flex items-center uppercase tracking-wider rounded border px-2.5 py-0.5 text-[10px] font-semibold ${
-                                                isUserAdmin
-                                                    ? 'bg-purple-950/80 text-purple-300 border-purple-800'
-                                                    : 'bg-slate-800 text-slate-400 border-slate-700'
-                                            }`}
-                                        >
-                                            {user.role}
+                                    <td className="font-mono text-xs text-gray-600">{user.email}</td>
+                                    <td>
+                                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${isUserAdmin ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
+                                            {user.role === 'admin' ? 'ADMIN' : 'VIEWER'}
                                         </span>
                                     </td>
-                                    <td className="py-3.5 px-4 text-slate-500">
-                                        {user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
+                                    <td className="font-mono text-xs text-gray-500">
+                                        {user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID') : '—'}
                                     </td>
-                                    <td className="py-3.5 px-4 text-right font-sans">
+                                    <td className="text-right">
                                         <div className="inline-flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setEditingUser(user)}
-                                                className="rounded px-2.5 py-1 text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-all border border-slate-700"
-                                            >
-                                                Edit
+                                            <button type="button" onClick={() => setEditingUser(user)} className="pv-btn pv-btn--outline text-xs py-1.5">
+                                                Ubah
                                             </button>
                                             {!isSelf && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDelete(user)}
-                                                    className="rounded px-2.5 py-1 text-xs font-medium text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition-all border border-rose-900/60"
-                                                >
-                                                    Delete
+                                                <button type="button" onClick={() => handleDelete(user)} className="pv-btn pv-btn--danger text-xs py-1.5">
+                                                    Hapus
                                                 </button>
                                             )}
                                         </div>
@@ -338,6 +197,7 @@ export default function UsersIndex({ users }: Props) {
                         })}
                     </tbody>
                 </table>
+                </div>
             </div>
         </AuthenticatedLayout>
     );

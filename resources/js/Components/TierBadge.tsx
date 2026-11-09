@@ -9,24 +9,24 @@ interface Props {
 export default function TierBadge({ tier, size = 'md' }: Props) {
     const t = (tier || 'unknown').toLowerCase();
 
-    let style = 'bg-slate-800/80 text-slate-300 border-slate-700';
-    let label = 'Unknown';
+    let style = 'bg-gray-100 text-gray-700 border-gray-200';
+    let label = 'Belum Ditetapkan';
 
     if (t === 'core') {
-        style = 'bg-purple-950/70 text-purple-300 border-purple-700/60 shadow-[0_0_12px_rgba(168,85,247,0.2)]';
+        style = 'bg-purple-50 text-purple-700 border-purple-200';
         label = 'Core';
     } else if (t === 'distribution') {
-        style = 'bg-blue-950/70 text-blue-300 border-blue-700/60';
-        label = 'Distribution';
+        style = 'bg-blue-50 text-blue-700 border-blue-200';
+        label = 'Distribusi';
     } else if (t === 'access') {
-        style = 'bg-teal-950/70 text-teal-300 border-teal-700/60';
-        label = 'Access';
+        style = 'bg-teal-50 text-teal-700 border-teal-200';
+        label = 'Akses';
     }
 
-    const sizeClass = size === 'sm' ? 'text-[10px] px-2 py-0.5' : 'text-xs px-2.5 py-0.5 font-medium';
+    const sizeClass = size === 'sm' ? 'text-[10px] px-2 py-0.5 font-bold' : 'text-xs px-2.5 py-0.5 font-bold';
 
     return (
-        <span className={`inline-flex items-center uppercase tracking-wider rounded border ${style} ${sizeClass}`}>
+        <span className={`inline-flex items-center uppercase tracking-wider rounded-full border ${style} ${sizeClass}`}>
             {label}
         </span>
     );

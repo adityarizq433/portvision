@@ -11,6 +11,5 @@ storage/framework/sessions/*
 storage/framework/views/*
 bootstrap/cache/*
 tests
-docker
 docker-compose.yml
 *.md

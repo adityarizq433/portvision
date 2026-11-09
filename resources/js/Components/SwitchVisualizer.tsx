@@ -12,6 +12,7 @@ interface Props {
 export default function SwitchVisualizer({ ports, deviceId, canEdit = false }: Props) {
     const [selectedPort, setSelectedPort] = useState<Port | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [updateError, setUpdateError] = useState<string | null>(null);
     const pageUser = usePage().props.auth.user;
     const isAdmin = canEdit || pageUser?.role === 'admin';
 
@@ -34,6 +35,7 @@ export default function SwitchVisualizer({ ports, deviceId, canEdit = false }: P
     const toggleCritical = async (port: Port) => {
         if (!isAdmin) return;
         setIsUpdating(true);
+        setUpdateError(null);
         try {
             const res = await fetch(`/api/ports/${port.id}`, {
                 method: 'PATCH',
@@ -53,9 +55,11 @@ export default function SwitchVisualizer({ ports, deviceId, canEdit = false }: P
                     setSelectedPort(data.port);
                 }
                 router.reload({ only: ['device'] });
+            } else {
+                throw new Error(`HTTP ${res.status}`);
             }
         } catch (err) {
-            console.error('Failed to toggle critical status', err);
+            setUpdateError('Gagal mengubah status kritis. Silakan coba lagi.');
         } finally {
             setIsUpdating(false);
         }
@@ -63,101 +67,107 @@ export default function SwitchVisualizer({ ports, deviceId, canEdit = false }: P
 
     const getLedClass = (port: Port) => {
         if (port.admin_status === 'down') {
-            return 'bg-slate-700 border-slate-600';
+            return 'bg-gray-300 border-gray-400';
         }
         if (port.oper_status === 'up') {
-            return 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]';
+            return 'bg-emerald-500';
         }
         if (port.oper_status === 'down') {
-            return 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,1)] animate-ping';
+            return 'bg-rose-500 animate-pulse';
         }
         return 'bg-amber-400';
     };
 
     return (
-        <div className="rounded-xl border border-slate-800 bg-slate-950 p-6 shadow-2xl backdrop-blur-md">
+        <div className="pv-card p-6">
             {/* Switch Chassis Header */}
-            <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-4 gap-4">
+            <div className="flex flex-wrap items-center justify-between border-b border-gray-100 pb-4 gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-3 w-3 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                    <div className="flex h-3 w-3 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
                     <div>
-                        <h4 className="text-sm font-semibold tracking-wide text-slate-200">
-                            PHYSICAL PORT MATRIX
+                        <h4 className="text-sm font-bold tracking-wide text-navy-900 uppercase">
+                            Matriks Port Fisik
                         </h4>
-                        <p className="text-xs text-slate-500 font-mono">
-                            {physicalPorts.length} Ports Configured • Dual-Row Stacking View
+                        <p className="text-xs text-gray-500 font-mono mt-0.5">
+                            {physicalPorts.length} Port Terkonfigurasi • Tampilan Rak Ganda
                         </p>
                     </div>
                 </div>
 
                 {/* Legend */}
-                <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-slate-400">
+                <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-gray-600">
                     <div className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                        <span>Link UP</span>
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+                        <span className="font-semibold text-gray-700">Link UP</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]" />
-                        <span>Link DOWN</span>
+                        <span className="h-2 w-2 rounded-full bg-rose-500" aria-hidden="true" />
+                        <span className="font-semibold text-gray-700">Link DOWN</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-slate-700" />
-                        <span>Admin Down</span>
+                        <span className="h-2 w-2 rounded-full bg-gray-500" aria-hidden="true" />
+                        <span className="font-semibold text-gray-700">Admin Down</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <span className="text-amber-400">★</span>
-                        <span>Critical Monitor</span>
+                        <span className="text-amber-600 font-bold" aria-hidden="true">★</span>
+                        <span className="font-semibold text-gray-700">Monitor Kritis</span>
                     </div>
                 </div>
             </div>
 
-            {/* Switch Faceplate */}
-            <div className="mt-6 overflow-x-auto rounded-lg border border-slate-800 bg-[#070b12] p-4 shadow-inner">
+            {updateError && (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700" role="alert">{updateError}</div>
+            )}
+
+            {/* Switch Faceplate: flat silver, no decorative gradient (R-01) */}
+            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-100 p-4 shadow-inner">
                 {physicalPorts.length === 0 ? (
-                    <div className="py-8 text-center text-sm text-slate-500">
-                        No physical Ethernet interfaces detected on this device.
+                    <div className="py-8 text-center text-sm text-gray-500 font-sans">
+                        Tidak ada antarmuka Ethernet fisik yang terdeteksi pada perangkat ini.
                     </div>
                 ) : (
-                    <div className="min-w-max">
+                    <div className="flex flex-col items-center gap-2.5">
                         {/* Row 1 (Odd ports) */}
-                        <div className="flex gap-2 mb-3">
-                            {row1.map((port, index) => {
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {row1.map((port) => {
                                 const isSelected = selectedPort?.id === port.id;
                                 return (
                                     <button
                                         key={port.id}
                                         type="button"
                                         onClick={() => setSelectedPort(port)}
-                                        className={`group relative flex h-20 w-14 flex-col items-center justify-between rounded-md border p-1.5 transition-all ${
+                                        className={`group relative flex min-h-[84px] w-[72px] flex-col items-center justify-between rounded-lg border p-1.5 transition-all shadow-sm focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:outline-none ${
                                             isSelected
-                                                ? 'border-cyan-400 bg-cyan-950/40 shadow-[0_0_12px_rgba(6,182,212,0.3)] ring-1 ring-cyan-400'
+                                                ? 'border-primary-500 bg-white ring-2 ring-primary-400/40 shadow-md'
                                                 : port.oper_status === 'down' && port.admin_status !== 'down'
-                                                ? 'border-rose-800/80 bg-rose-950/20 hover:border-rose-500'
-                                                : 'border-slate-800 bg-slate-900/90 hover:border-slate-700 hover:bg-slate-800/80'
+                                                ? 'border-rose-300 bg-rose-50/70 hover:border-rose-400'
+                                                : 'border-gray-300 bg-white hover:border-primary-300 hover:shadow-md'
                                         }`}
+                                        aria-label={`Port ${port.if_name}, status ${port.oper_status}${port.is_critical ? ', kritis' : ''}`}
+                                        title={port.if_name}
                                     >
                                         {/* Port LED & Critical Star */}
                                         <div className="flex w-full items-center justify-between px-0.5">
                                             <span
-                                                className={`h-2 w-2 rounded-full border border-black/50 ${getLedClass(
+                                                className={`h-2 w-2 rounded-full border border-black/10 ${getLedClass(
                                                     port
                                                 )}`}
                                             />
                                             {port.is_critical && (
-                                                <span className="text-[10px] text-amber-400 leading-none">
+                                                <span className="text-[10px] text-amber-500 leading-none" aria-label="Antarmuka kritis">
                                                     ★
                                                 </span>
                                             )}
                                         </div>
 
                                         {/* Port Connector Shape */}
-                                        <div className="h-7 w-8 rounded-sm border border-slate-700 bg-slate-950 flex items-center justify-center">
-                                            <div className="h-3 w-5 border-t border-slate-600 bg-slate-900 rounded-b-sm" />
+                                        <div className="h-7 w-8 rounded-sm border border-gray-400 bg-gray-800 flex items-center justify-center shadow-inner" aria-hidden="true">
+                                            <div className="h-3 w-5 border-t border-gray-500 bg-gray-900 rounded-b-sm" />
                                         </div>
 
-                                        {/* Port Label */}
-                                        <span className="text-[10px] font-mono font-medium text-slate-300 truncate max-w-full">
-                                            {port.if_name.replace(/^(FastEthernet|GigabitEthernet|TenGigabitEthernet|Ethernet)/i, (m) => m[0])}
+                                        {/* Port Label: full text centred, no truncation */}
+                                        <span className="text-center font-mono text-[9px] font-bold leading-tight text-navy-900 break-words">
+                                            {port.if_name}
                                         </span>
                                     </button>
                                 );
@@ -165,70 +175,78 @@ export default function SwitchVisualizer({ ports, deviceId, canEdit = false }: P
                         </div>
 
                         {/* Row 2 (Even ports) */}
-                        <div className="flex gap-2">
-                            {row2.map((port, index) => {
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {row2.map((port) => {
                                 const isSelected = selectedPort?.id === port.id;
                                 return (
                                     <button
                                         key={port.id}
                                         type="button"
                                         onClick={() => setSelectedPort(port)}
-                                        className={`group relative flex h-20 w-14 flex-col items-center justify-between rounded-md border p-1.5 transition-all ${
+                                        className={`group relative flex min-h-[84px] w-[72px] flex-col items-center justify-between rounded-lg border p-1.5 transition-all shadow-sm focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:outline-none ${
                                             isSelected
-                                                ? 'border-cyan-400 bg-cyan-950/40 shadow-[0_0_12px_rgba(6,182,212,0.3)] ring-1 ring-cyan-400'
+                                                ? 'border-primary-500 bg-white ring-2 ring-primary-400/40 shadow-md'
                                                 : port.oper_status === 'down' && port.admin_status !== 'down'
-                                                ? 'border-rose-800/80 bg-rose-950/20 hover:border-rose-500'
-                                                : 'border-slate-800 bg-slate-900/90 hover:border-slate-700 hover:bg-slate-800/80'
+                                                ? 'border-rose-300 bg-rose-50/70 hover:border-rose-400'
+                                                : 'border-gray-300 bg-white hover:border-primary-300 hover:shadow-md'
                                         }`}
+                                        aria-label={`Port ${port.if_name}, status ${port.oper_status}`}
+                                        title={port.if_name}
                                     >
                                         {/* Port LED & Critical Star */}
                                         <div className="flex w-full items-center justify-between px-0.5">
                                             <span
-                                                className={`h-2 w-2 rounded-full border border-black/50 ${getLedClass(
+                                                className={`h-2 w-2 rounded-full border border-black/10 ${getLedClass(
                                                     port
                                                 )}`}
                                             />
                                             {port.is_critical && (
-                                                <span className="text-[10px] text-amber-400 leading-none">
+                                                <span className="text-[10px] text-amber-500 leading-none" aria-label="Antarmuka kritis">
                                                     ★
                                                 </span>
                                             )}
                                         </div>
 
                                         {/* Port Connector Shape */}
-                                        <div className="h-7 w-8 rounded-sm border border-slate-700 bg-slate-950 flex items-center justify-center">
-                                            <div className="h-3 w-5 border-t border-slate-600 bg-slate-900 rounded-b-sm" />
+                                        <div className="h-7 w-8 rounded-sm border border-gray-400 bg-gray-800 flex items-center justify-center shadow-inner" aria-hidden="true">
+                                            <div className="h-3 w-5 border-t border-gray-500 bg-gray-900 rounded-b-sm" />
                                         </div>
 
-                                        {/* Port Label */}
-                                        <span className="text-[10px] font-mono font-medium text-slate-300 truncate max-w-full">
-                                            {port.if_name.replace(/^(FastEthernet|GigabitEthernet|TenGigabitEthernet|Ethernet)/i, (m) => m[0])}
+                                        {/* Port Label: full text centred, no truncation */}
+                                        <span className="text-center font-mono text-[9px] font-bold leading-tight text-navy-900 break-words">
+                                            {port.if_name}
                                         </span>
                                     </button>
                                 );
                             })}
                         </div>
+
+                        {otherPorts.length > 0 && (
+                            <p className="mt-3 font-mono text-[11px] text-gray-500">
+                                {otherPorts.length} antarmuka non-fisik (VLAN/loopback) tidak ditampilkan di matriks. Lihat tabel di bawah untuk detail lengkap.
+                            </p>
+                        )}
                     </div>
                 )}
             </div>
 
             {/* Selected Port Inspector Details Modal / Bar */}
             {selectedPort && (
-                <div className="mt-6 rounded-lg border border-slate-800 bg-slate-900/80 p-5 backdrop-blur-md transition-all">
-                    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-3">
+                <div className="mt-5 rounded-xl border border-primary-200 bg-primary-50/60 p-5 shadow-sm transition-all">
+                    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-primary-200/70 pb-3">
                         <div className="flex items-center gap-3">
-                            <h5 className="text-base font-bold text-white font-mono">
+                            <h5 className="text-base font-bold text-navy-900 font-mono">
                                 {selectedPort.if_name}
                             </h5>
                             <StatusBadge status={selectedPort.oper_status} size="sm" />
                             {selectedPort.admin_status === 'down' && (
-                                <span className="rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
+                                <span className="rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-semibold text-gray-700">
                                     Admin Down
                                 </span>
                             )}
                             {selectedPort.is_critical && (
-                                <span className="rounded bg-amber-950/80 border border-amber-800 text-amber-300 px-2 py-0.5 text-xs font-semibold">
-                                    ★ Critical Interface
+                                <span className="rounded-full bg-amber-100 border border-amber-300 text-amber-800 px-2.5 py-0.5 text-xs font-bold flex items-center gap-1">
+                                    ★ Antarmuka Kritis
                                 </span>
                             )}
                         </div>
@@ -239,53 +257,54 @@ export default function SwitchVisualizer({ ports, deviceId, canEdit = false }: P
                                     type="button"
                                     disabled={isUpdating}
                                     onClick={() => toggleCritical(selectedPort)}
-                                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                                    className={`pv-btn text-xs py-1.5 ${
                                         selectedPort.is_critical
-                                            ? 'bg-amber-600 text-white hover:bg-amber-500'
-                                            : 'bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700'
+                                            ? 'bg-amber-600 text-white hover:bg-amber-700'
+                                            : 'pv-btn--primary'
                                     }`}
                                 >
-                                    {selectedPort.is_critical ? 'Remove Critical' : 'Mark as Critical'}
+                                    {isUpdating ? 'Menyimpan…' : (selectedPort.is_critical ? 'Hapus Status Kritis' : 'Tandai sebagai Kritis')}
                                 </button>
                             )}
                             <button
                                 type="button"
                                 onClick={() => setSelectedPort(null)}
-                                className="rounded p-1 text-slate-400 hover:text-white"
+                                className="rounded-lg p-1.5 text-gray-500 hover:bg-white hover:text-gray-700 transition focus-visible:ring-2 focus-visible:ring-primary-400"
+                                aria-label="Tutup inspektur port"
                             >
                                 ✕
                             </button>
                         </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+                    <dl className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
                         <div>
-                            <span className="text-slate-500 block">Alias / Description</span>
-                            <span className="text-slate-200 font-semibold truncate block mt-0.5">
+                            <dt className="text-gray-500 block uppercase tracking-wider text-[11px]">Alias / Deskripsi</dt>
+                            <dd className="text-navy-900 font-bold truncate block mt-0.5">
                                 {selectedPort.if_alias || selectedPort.if_descr || '—'}
-                            </span>
+                            </dd>
                         </div>
                         <div>
-                            <span className="text-slate-500 block">Link Speed</span>
-                            <span className="text-slate-200 font-semibold block mt-0.5">
+                            <dt className="text-gray-500 block uppercase tracking-wider text-[11px]">Kecepatan Link</dt>
+                            <dd className="text-navy-900 font-bold block mt-0.5">
                                 {selectedPort.speed_human || (selectedPort.if_speed ? `${selectedPort.if_speed} bps` : '—')}
-                            </span>
+                            </dd>
                         </div>
                         <div>
-                            <span className="text-slate-500 block">Interface Type</span>
-                            <span className="text-slate-200 font-semibold block mt-0.5">
+                            <dt className="text-gray-500 block uppercase tracking-wider text-[11px]">Tipe Antarmuka</dt>
+                            <dd className="text-navy-900 font-bold block mt-0.5">
                                 {selectedPort.if_type || '—'}
-                            </span>
+                            </dd>
                         </div>
                         <div>
-                            <span className="text-slate-500 block">Status Changed</span>
-                            <span className="text-slate-200 font-semibold block mt-0.5">
+                            <dt className="text-gray-500 block uppercase tracking-wider text-[11px]">Perubahan Status</dt>
+                            <dd className="text-navy-900 font-semibold block mt-0.5">
                                 {selectedPort.status_changed_at
-                                    ? new Date(selectedPort.status_changed_at).toLocaleString()
+                                    ? new Date(selectedPort.status_changed_at).toLocaleString('id-ID')
                                     : '—'}
-                            </span>
+                            </dd>
                         </div>
-                    </div>
+                    </dl>
                 </div>
             )}
         </div>

@@ -87,6 +87,8 @@ class TopologyController extends Controller
                 'id' => "link-{$link->id}",
                 'source' => "device-{$link->source_device_id}",
                 'target' => "device-{$link->target_device_id}",
+                'sourceHandle' => $link->source_handle,
+                'targetHandle' => $link->target_handle,
                 'type' => 'topologyEdge',
                 'animated' => $status === 'active',
                 'data' => [
@@ -151,6 +153,8 @@ class TopologyController extends Controller
             'target_port_id' => ['nullable', 'exists:ports,id'],
             'location_id' => ['nullable', 'exists:locations,id'],
             'status' => ['required', 'in:active,suggested,rejected'],
+            'source_handle' => ['nullable', 'in:top-source,bottom-source,left-source,right-source,top,bottom,left,right'],
+            'target_handle' => ['nullable', 'in:top-target,bottom-target,left-target,right-target,top,bottom,left,right'],
         ]);
 
         $sourceDevice = Device::find($validated['source_device_id']);
@@ -170,6 +174,8 @@ class TopologyController extends Controller
                 'target_port_id' => $validated['target_port_id'] ?? $link->target_port_id,
                 'location_id' => $validated['location_id'] ?? $link->location_id ?? $sourceDevice?->location_id,
                 'status' => $validated['status'],
+                'source_handle' => $validated['source_handle'] ?? $link->source_handle,
+                'target_handle' => $validated['target_handle'] ?? $link->target_handle,
                 'source_type' => 'manual',
             ]);
         } else {
@@ -181,6 +187,8 @@ class TopologyController extends Controller
                 'location_id' => $validated['location_id'] ?? $sourceDevice?->location_id,
                 'source_type' => 'manual',
                 'status' => $validated['status'],
+                'source_handle' => $validated['source_handle'] ?? null,
+                'target_handle' => $validated['target_handle'] ?? null,
             ]);
         }
 

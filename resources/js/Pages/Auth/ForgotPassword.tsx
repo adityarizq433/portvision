@@ -18,21 +18,21 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
     return (
         <GuestLayout>
-            <Head title="Forgot Password" />
+            <Head title="Lupa Kata Sandi" />
 
             <div className="mb-4 text-sm text-gray-600">
-                Forgot your password? No problem. Just let us know your email
-                address and we will email you a password reset link that will
-                allow you to choose a new one.
+                Lupa kata sandi? Masukkan alamat email operator Anda dan kami kirim
+                tautan untuk memilih kata sandi baru.
             </div>
 
             {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
+                <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700" role="alert">
                     {status}
                 </div>
             )}
 
             <form onSubmit={submit}>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Alamat Email</label>
                 <TextInput
                     id="email"
                     type="email"
@@ -40,14 +40,17 @@ export default function ForgotPassword({ status }: { status?: string }) {
                     value={data.email}
                     className="mt-1 block w-full"
                     isFocused={true}
+                    autoComplete="username"
+                    required
                     onChange={(e) => setData('email', e.target.value)}
+                    aria-describedby={errors.email ? 'email-error' : undefined}
+                    aria-invalid={!!errors.email}
                 />
-
-                <InputError message={errors.email} className="mt-2" />
+                <span id="email-error"><InputError message={errors.email} className="mt-2" /></span>
 
                 <div className="mt-4 flex items-center justify-end">
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Email Password Reset Link
+                    <PrimaryButton className="ms-4 w-full" disabled={processing}>
+                        {processing ? 'Mengirim…' : 'Kirim Tautan Reset Kata Sandi'}
                     </PrimaryButton>
                 </div>
             </form>

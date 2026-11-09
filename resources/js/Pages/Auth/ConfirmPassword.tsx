@@ -21,16 +21,15 @@ export default function ConfirmPassword() {
 
     return (
         <GuestLayout>
-            <Head title="Confirm Password" />
+            <Head title="Konfirmasi Kata Sandi" />
 
             <div className="mb-4 text-sm text-gray-600">
-                This is a secure area of the application. Please confirm your
-                password before continuing.
+                Ini adalah area aman. Konfirmasi kata sandi Anda sebelum melanjutkan.
             </div>
 
             <form onSubmit={submit}>
                 <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
+                    <InputLabel htmlFor="password" value="Kata Sandi" />
 
                     <TextInput
                         id="password"
@@ -39,6 +38,8 @@ export default function ConfirmPassword() {
                         value={data.password}
                         className="mt-1 block w-full"
                         isFocused={true}
+                        required
+                        autoComplete="current-password"
                         onChange={(e) => setData('password', e.target.value)}
                     />
 
@@ -46,8 +47,8 @@ export default function ConfirmPassword() {
                 </div>
 
                 <div className="mt-4 flex items-center justify-end">
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Confirm
+                    <PrimaryButton className="ms-4 w-full" disabled={processing}>
+                        {processing ? 'Memeriksa…' : 'Konfirmasi Kata Sandi'}
                     </PrimaryButton>
                 </div>
             </form>

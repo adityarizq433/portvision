@@ -1,6 +1,8 @@
 import {
     Dialog,
     DialogPanel,
+    DialogTitle,
+    DialogDescription,
     Transition,
     TransitionChild,
 } from '@headlessui/react';
@@ -62,6 +64,8 @@ export default function Modal({
                     <DialogPanel
                         className={`mb-6 transform overflow-hidden rounded-lg bg-white shadow-xl transition-all sm:mx-auto sm:w-full ${maxWidthClass}`}
                     >
+                        <DialogTitle className="sr-only">Dialog</DialogTitle>
+                        <DialogDescription className="sr-only">Dialog ini dapat ditutup dengan tekan Escape atau klik di luar.</DialogDescription>
                         {children}
                     </DialogPanel>
                 </TransitionChild>

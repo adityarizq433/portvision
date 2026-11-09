@@ -15,7 +15,7 @@ Route::get('/', function () {
 });
 
 // Authenticated Routes (Viewers & Admins)
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/api/dashboard/live', [DashboardController::class, 'liveStats'])->name('dashboard.live');

@@ -23,33 +23,31 @@ export default function StatCard({
     accentColor = 'cyan',
 }: Props) {
     const accents = {
-        cyan: 'border-cyan-500/20 shadow-[0_0_20px_rgba(6,182,212,0.1)] hover:border-cyan-500/40',
-        emerald: 'border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)] hover:border-emerald-500/40',
-        rose: 'border-rose-500/30 shadow-[0_0_25px_rgba(244,63,94,0.15)] hover:border-rose-500/50',
-        amber: 'border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.1)] hover:border-amber-500/40',
-        purple: 'border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.1)] hover:border-purple-500/40',
+        cyan: 'border-cyan-500/20 hover:border-cyan-500/40',
+        emerald: 'border-emerald-500/20 hover:border-emerald-500/40',
+        rose: 'border-rose-500/30 hover:border-rose-500/50',
+        amber: 'border-amber-500/20 hover:border-amber-500/40',
+        purple: 'border-purple-500/20 hover:border-purple-500/40',
     }[accentColor];
 
     return (
         <div
-            className={`relative overflow-hidden rounded-xl bg-slate-900/90 border p-5 backdrop-blur-md transition-all duration-300 ${accents} ${
+            className={`relative overflow-hidden rounded-xl bg-slate-900/90 border p-5 transition-colors duration-150 ${accents} ${
                 alert ? 'ring-1 ring-rose-500/60' : ''
             }`}
         >
             {alert && (
-                <div className="absolute top-0 right-0 h-16 w-16 overflow-hidden">
-                    <div className="absolute top-2 right-[-24px] rotate-45 bg-rose-600 px-6 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm">
-                        Alert
-                    </div>
-                </div>
+                <span className="absolute right-3 top-3 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-700">
+                    Peringatan
+                </span>
             )}
 
             <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                     {title}
                 </span>
                 {icon && (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700/50">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700/50" aria-hidden="true">
                         {icon}
                     </div>
                 )}
@@ -71,7 +69,7 @@ export default function StatCard({
             </div>
 
             {subtitle && (
-                <p className="mt-2 text-xs text-slate-400 line-clamp-1">{subtitle}</p>
+                <p className="mt-2 text-xs text-slate-300 line-clamp-1">{subtitle}</p>
             )}
         </div>
     );

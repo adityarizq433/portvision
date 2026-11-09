@@ -50,24 +50,21 @@ export default function UpdatePasswordForm({
 
     return (
         <section className={className}>
-            <header>
-                <h2 className="text-lg font-medium text-gray-900">
-                    Update Password
+            <header className="border-b border-gray-100 pb-3">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-navy-900">
+                    Perbarui Kata Sandi
                 </h2>
-
-                <p className="mt-1 text-sm text-gray-600">
-                    Ensure your account is using a long, random password to stay
-                    secure.
+                <p className="mt-1 text-xs text-gray-500">
+                    Pastikan akun Anda menggunakan kata sandi yang kuat dan aman untuk melindungi akses sistem.
                 </p>
             </header>
 
-            <form onSubmit={updatePassword} className="mt-6 space-y-6">
+            <form onSubmit={updatePassword} className="mt-5 space-y-4">
                 <div>
                     <InputLabel
                         htmlFor="current_password"
-                        value="Current Password"
+                        value="Kata Sandi Saat Ini"
                     />
-
                     <TextInput
                         id="current_password"
                         ref={currentPasswordInput}
@@ -76,38 +73,36 @@ export default function UpdatePasswordForm({
                             setData('current_password', e.target.value)
                         }
                         type="password"
-                        className="mt-1 block w-full"
+                        className="mt-1.5 block w-full"
                         autoComplete="current-password"
+                        required
                     />
-
                     <InputError
                         message={errors.current_password}
-                        className="mt-2"
+                        className="mt-1.5"
                     />
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="password" value="New Password" />
-
+                    <InputLabel htmlFor="password" value="Kata Sandi Baru" />
                     <TextInput
                         id="password"
                         ref={passwordInput}
                         value={data.password}
                         onChange={(e) => setData('password', e.target.value)}
                         type="password"
-                        className="mt-1 block w-full"
+                        className="mt-1.5 block w-full"
                         autoComplete="new-password"
+                        required
                     />
-
-                    <InputError message={errors.password} className="mt-2" />
+                    <InputError message={errors.password} className="mt-1.5" />
                 </div>
 
                 <div>
                     <InputLabel
                         htmlFor="password_confirmation"
-                        value="Confirm Password"
+                        value="Konfirmasi Kata Sandi Baru"
                     />
-
                     <TextInput
                         id="password_confirmation"
                         value={data.password_confirmation}
@@ -115,18 +110,18 @@ export default function UpdatePasswordForm({
                             setData('password_confirmation', e.target.value)
                         }
                         type="password"
-                        className="mt-1 block w-full"
+                        className="mt-1.5 block w-full"
                         autoComplete="new-password"
+                        required
                     />
-
                     <InputError
                         message={errors.password_confirmation}
-                        className="mt-2"
+                        className="mt-1.5"
                     />
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
+                <div className="flex items-center gap-4 pt-2">
+                    <PrimaryButton disabled={processing}>Perbarui Kata Sandi</PrimaryButton>
 
                     <Transition
                         show={recentlySuccessful}
@@ -135,8 +130,8 @@ export default function UpdatePasswordForm({
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600">
-                            Saved.
+                        <p className="text-xs font-semibold text-green-700 font-mono" role="status">
+                            ✓ Kata sandi berhasil diperbarui.
                         </p>
                     </Transition>
                 </div>
