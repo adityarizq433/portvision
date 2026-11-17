@@ -31,6 +31,8 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
+            // Token dikirim ulang tiap navigasi Inertia agar meta csrf-token tidak basi (419).
+            'csrf_token' => fn () => csrf_token(),
             'auth' => [
                 'user' => $request->user(),
             ],
