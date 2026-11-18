@@ -179,6 +179,29 @@ class LibreNMSClient
     }
 
     /**
+     * Get alerts from LibreNMS (device down, port down, custom rules, etc).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAlerts(int $rowCount = 200): array
+    {
+        $response = $this->get('/api/v0/alerts', [
+            'order' => 'timestamp desc',
+            'paginate' => 1,
+            'rowCount' => $rowCount,
+            'current' => 1,
+        ]);
+
+        if (! $response->successful()) {
+            Log::warning('LibreNMS: getAlerts failed', ['status' => $response->status()]);
+
+            return [];
+        }
+
+        return $response->json('alerts', []);
+    }
+
+    /**
      * Get locations from LibreNMS.
      */
     public function getLocations(): array

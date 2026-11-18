@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AlertController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\LocationController;
@@ -36,6 +37,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/topology', [TopologyController::class, 'index'])->name('topology.index');
     Route::get('/api/topology/data', [TopologyController::class, 'data'])->name('topology.data');
     Route::get('/api/topology/port-status', [TopologyController::class, 'portStatus'])->name('topology.port-status');
+
+    // Alerts
+    Route::get('/alerts', [AlertController::class, 'index'])->name('alerts.index');
+    Route::get('/api/alerts', [AlertController::class, 'data'])->name('alerts.data');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -160,6 +160,25 @@ export interface DashboardStats {
     recentEvents: PortEvent[];
 }
 
+export interface Alert {
+    id: number;
+    librenms_device_id?: number | null;
+    device_id?: number | null;
+    hostname: string;
+    rule: string;
+    severity: 'ok' | 'warning' | 'critical';
+    state: number;
+    is_active: boolean;
+    timestamp?: string | null;
+    info?: string | null;
+}
+
+export interface AlertSummary {
+    active: number;
+    critical: number;
+    warning: number;
+}
+
 export interface SystemSettings {
     librenms_url: string;
     librenms_has_token: boolean;

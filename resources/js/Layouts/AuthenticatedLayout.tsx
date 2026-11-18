@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { PropsWithChildren, ReactNode, useState, useEffect } from 'react';
+import { PropsWithChildren, ReactNode, useState, useEffect, useRef } from 'react';
 import { PageProps } from '@/types';
 
 interface NavItem {
@@ -7,6 +7,7 @@ interface NavItem {
     href: string;
     current: boolean;
     icon: ReactNode;
+    badge?: number;
 }
 
 function NavIcon({ children }: { children: ReactNode }) {
@@ -24,11 +25,60 @@ export default function AuthenticatedLayout({
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isPolling, setIsPolling] = useState(false);
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
+    const [alertCount, setAlertCount] = useState<number | null>(null);
+    const [alertToast, setAlertToast] = useState<string | null>(null);
+
+    const prevAlertCount = useRef<number | null>(null);
+    const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         const savedTheme = (localStorage.getItem('pv-theme') as 'light' | 'dark') || 'light';
         setTheme(savedTheme);
         document.documentElement.setAttribute('data-theme', savedTheme);
+    }, []);
+
+    // Poll active alert count every 60s; toast when it increases
+    useEffect(() => {
+        const controller = new AbortController();
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+        const pollAlerts = () => {
+            timeoutId = setTimeout(() => controller.abort(), 15000);
+            fetch(route('alerts.data'), { signal: controller.signal })
+                .then((res) => (res.ok ? res.json() : null))
+                .then((payload) => {
+                    if (!payload) return;
+                    const active = payload.summary?.active ?? 0;
+                    const prev = prevAlertCount.current;
+                    prevAlertCount.current = active;
+                    setAlertCount(active);
+                    if (prev !== null && active > prev) {
+                        const critical = payload.summary?.critical ?? 0;
+                        setAlertToast(
+                            critical > 0
+                                ? `Alert baru: ${active} aktif (${critical} critical)`
+                                : `Alert baru: ${active} aktif`
+                        );
+                        if (toastTimer.current) clearTimeout(toastTimer.current);
+                        toastTimer.current = setTimeout(() => setAlertToast(null), 5000);
+                    }
+                })
+                .catch(() => {
+                    // Transient failure — the next tick will retry.
+                })
+                .finally(() => {
+                    if (timeoutId) clearTimeout(timeoutId);
+                });
+        };
+
+        pollAlerts();
+        const interval = setInterval(pollAlerts, 60000);
+        return () => {
+            clearInterval(interval);
+            controller.abort();
+            if (timeoutId) clearTimeout(timeoutId);
+            if (toastTimer.current) clearTimeout(toastTimer.current);
+        };
     }, []);
 
     const toggleTheme = () => {
@@ -74,6 +124,17 @@ export default function AuthenticatedLayout({
             icon: (
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+            ),
+        },
+        {
+            name: 'Alerts',
+            href: route('alerts.index'),
+            current: route().current('alerts.*'),
+            badge: alertCount ?? 0,
+            icon: (
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1h6z" />
                 </svg>
             ),
         },
@@ -167,7 +228,16 @@ export default function AuthenticatedLayout({
                         >
                             <NavIcon>{item.icon}</NavIcon>
                             <span>{item.name}</span>
-                            <span className="pv-nav-dot" aria-hidden="true" />
+                            {item.name === 'Alerts' && item.badge ? (
+                                <span
+                                    className="ml-auto inline-flex items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white"
+                                    aria-label={`${item.badge} alert aktif`}
+                                >
+                                    {item.badge}
+                                </span>
+                            ) : (
+                                <span className="pv-nav-dot" aria-hidden="true" />
+                            )}
                         </Link>
                     ))}
                 </nav>
@@ -306,6 +376,27 @@ export default function AuthenticatedLayout({
                 <main className="pv-content">
                     {children}
                 </main>
+
+                {/* Alert toast (bottom-right) */}
+                {alertToast && (
+                    <div className="fixed bottom-5 right-5 z-50 flex items-start gap-2 rounded-xl border border-red-200 bg-white px-4 py-3 shadow-xl" role="alert">
+                        <span className="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full bg-red-500 animate-dot-blink" aria-hidden="true" />
+                        <div>
+                            <div className="text-sm font-bold text-navy-900">Alert Jaringan Baru</div>
+                            <div className="text-xs text-gray-500">{alertToast}</div>
+                        </div>
+                        <button
+                            type="button"
+                            className="ml-2 text-gray-400 hover:text-gray-600"
+                            onClick={() => setAlertToast(null)}
+                            aria-label="Tutup notifikasi"
+                        >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
 
                 {/* Footer */}
                 <footer className="border-t border-gray-200 bg-white px-6 py-3 text-center text-xs text-gray-400 font-mono">
