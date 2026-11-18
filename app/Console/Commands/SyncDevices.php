@@ -25,7 +25,7 @@ class SyncDevices extends Command
         if ($this->option('links')) {
             $this->info('Syncing LLDP/CDP links...');
             $linkResult = $sync->syncLinks();
-            $this->line("✓ {$linkResult['synced']} links synced");
+            $this->line("✓ {$linkResult['synced']} links synced, ".($linkResult['skipped'] ?? 0).' skipped');
         }
 
         return self::SUCCESS;

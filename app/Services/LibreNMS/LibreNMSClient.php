@@ -208,10 +208,23 @@ class LibreNMSClient
     {
         $url = $this->baseUrl.$path;
 
-        return Http::timeout($this->timeout)
-            ->retry($this->retries, $this->retryDelay, throw: false)
-            ->withHeaders(['X-Auth-Token' => $this->token])
-            ->get($url, $query ?: null);
+        try {
+            return Http::timeout($this->timeout)
+                ->retry($this->retries, $this->retryDelay, throw: false)
+                ->withHeaders(['X-Auth-Token' => $this->token])
+                ->get($url, $query ?: null);
+        } catch (ConnectionException $e) {
+            // retry(throw: false) only swallows HTTP response errors;
+            // transport failures (timeout, DNS, refused) still throw and
+            // would crash pollers/syncs. Return a synthetic failed response
+            // so callers flow through their normal !successful() handling.
+            Log::warning('LibreNMS: connection failed', [
+                'url' => $url,
+                'error' => $e->getMessage(),
+            ]);
+
+            return Http::response(null, 503);
+        }
     }
 
     private function stripSensitiveFields(array $data): array
