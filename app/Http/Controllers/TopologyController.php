@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\Redis;
 
 class TopologyController extends Controller
 {
@@ -106,6 +107,48 @@ class TopologyController extends Controller
             'nodes' => $nodes,
             'edges' => $edges,
         ]);
+    }
+
+    /**
+     * Lightweight near-realtime status refresh for the topology canvas.
+     * Reads per-device port caches from Redis (written by the poller)
+     * and falls back to database counters when Redis is unavailable.
+     */
+    public function portStatus(): JsonResponse
+    {
+        $devices = Device::where('is_hidden', false)->get(['id', 'status', 'port_count', 'port_up_count', 'port_down_count']);
+
+        $result = [];
+        foreach ($devices as $device) {
+            $up = null;
+            $down = null;
+
+            try {
+                $raw = Redis::get($device->portCacheKey());
+                if ($raw) {
+                    $ports = json_decode($raw, true) ?: [];
+                    $physical = array_filter($ports, fn ($p) => ! empty($p['is_physical']));
+                    $up = count(array_filter($physical, fn ($p) => ($p['oper_status'] ?? '') === 'up'));
+                    $down = count($physical) - $up;
+                }
+            } catch (\Throwable) {
+                // Redis unreachable — fall back to database counters below.
+            }
+
+            if ($up === null) {
+                $up = $device->port_up_count;
+                $down = $device->port_down_count;
+            }
+
+            $result[$device->id] = [
+                'status' => $device->status,
+                'port_count' => $device->port_count,
+                'port_up_count' => $up,
+                'port_down_count' => $down,
+            ];
+        }
+
+        return response()->json(['devices' => $result]);
     }
 
     /**

@@ -11,6 +11,7 @@ use App\Models\TopologyLink;
 use App\Models\TopologyNode;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 
@@ -223,14 +224,47 @@ class SyncService
 
         $rawLinks = $this->client->getLinks();
         $deviceMap = Device::all()->keyBy('librenms_device_id');
+        $deviceByHostname = Device::all()
+            ->keyBy(fn (Device $d) => $this->normalizeHostname($d->hostname));
+        $deviceByIp = Device::whereNotNull('ip')->get()->keyBy('ip');
         $portMap = Port::all()->keyBy('librenms_port_id');
 
         $synced = 0;
+        $skipped = [];
+
         foreach ($rawLinks as $raw) {
-            $sourceDevice = $deviceMap->get($raw['local_device_id'] ?? null);
-            $targetDevice = $deviceMap->get($raw['remote_device_id'] ?? null);
+            $sourceDevice = isset($raw['local_device_id'])
+                ? $deviceMap->get($raw['local_device_id'])
+                : null;
+
+            // LibreNMS /resources/links often omits local_device_id; resolve
+            // it from the local port instead.
+            if (! $sourceDevice && isset($raw['local_port_id'])) {
+                $localPort = $portMap->get($raw['local_port_id']);
+                $sourceDevice = $localPort ? $deviceMap->get($localPort->device_id) : null;
+            }
+
+            $targetDevice = isset($raw['remote_device_id'])
+                ? $deviceMap->get($raw['remote_device_id'])
+                : null;
+
+            // Resolve the remote side by hostname (short name or FQDN) or IP.
+            if (! $targetDevice) {
+                $remoteHostname = trim((string) ($raw['remote_hostname'] ?? ''));
+                if ($remoteHostname !== '') {
+                    $targetDevice = $deviceByHostname->get($this->normalizeHostname($remoteHostname))
+                        ?? $deviceByIp->get($remoteHostname);
+                }
+            }
 
             if (! $sourceDevice || ! $targetDevice || $sourceDevice->id === $targetDevice->id) {
+                $reason = match (true) {
+                    ! $sourceDevice => 'local device not resolved',
+                    ! $targetDevice => 'remote device not resolved (remote_hostname: '.($raw['remote_hostname'] ?? 'null').')',
+                    default => 'self link',
+                };
+                $skipped[] = $reason;
+
                 continue;
             }
 
@@ -294,7 +328,21 @@ class SyncService
             $synced++;
         }
 
-        return ['ok' => true, 'synced' => $synced];
+        if ($skipped) {
+            Log::info('Link sync: skipped links', ['reasons' => array_count_values($skipped)]);
+        }
+
+        return ['ok' => true, 'synced' => $synced, 'skipped' => count($skipped)];
+    }
+
+    /**
+     * Normalize a hostname for matching: lowercase and strip the domain part.
+     */
+    private function normalizeHostname(?string $hostname): string
+    {
+        $host = strtolower(trim((string) $hostname));
+
+        return strtok($host, '.') ?: $host;
     }
 
     // ------------------------------------------------------------------

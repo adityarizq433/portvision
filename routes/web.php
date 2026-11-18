@@ -35,6 +35,7 @@ Route::middleware(['auth'])->group(function () {
     // Topology
     Route::get('/topology', [TopologyController::class, 'index'])->name('topology.index');
     Route::get('/api/topology/data', [TopologyController::class, 'data'])->name('topology.data');
+    Route::get('/api/topology/port-status', [TopologyController::class, 'portStatus'])->name('topology.port-status');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

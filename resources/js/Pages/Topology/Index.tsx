@@ -161,11 +161,15 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
     const fetchTopologyData = useCallback(async (locId?: number | string) => {
         setIsLoading(true);
         setSelectedEdge(null);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
         try {
             const params = new URLSearchParams();
             if (locId) params.append('location_id', locId.toString());
 
-            const res = await fetch(`/api/topology/data?${params.toString()}`);
+            const res = await fetch(`/api/topology/data?${params.toString()}`, {
+                signal: controller.signal,
+            });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             if (res.ok) {
                 const data = await res.json();
@@ -232,15 +236,61 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
                 setEdges(formattedEdges);
             }
         } catch (err) {
-            setSaveMessage('Gagal memuat data topologi. Periksa koneksi dan coba lagi.');
+            const aborted = err instanceof DOMException && err.name === 'AbortError';
+            setSaveMessage(aborted
+                ? 'Server tidak merespons dalam 15 detik. Periksa koneksi atau coba lagi.'
+                : 'Gagal memuat data topologi. Periksa koneksi dan coba lagi.');
             setTimeout(() => setSaveMessage(null), 4000);
         } finally {
+            clearTimeout(timeoutId);
             setIsLoading(false);
         }
     }, [isAdmin, deleteLink, setNodes, setEdges]);
 
     useEffect(() => {
         fetchTopologyData(locationId);
+    }, [locationId, fetchTopologyData]);
+
+    // Near-realtime: refresh device/port statuses from Redis every 10 seconds
+    const refreshPortStatus = useCallback(async () => {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            const res = await fetch('/api/topology/port-status', { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (!res.ok) return;
+            const payload = await res.json();
+            setNodes((nds) =>
+                nds.map((n) => {
+                    const s = payload.devices?.[String(n.data.id)];
+                    if (!s) return n;
+                    return {
+                        ...n,
+                        data: {
+                            ...n.data,
+                            status: s.status,
+                            port_count: s.port_count,
+                            port_up_count: s.port_up_count,
+                            port_down_count: s.port_down_count,
+                        },
+                    };
+                })
+            );
+        } catch {
+            // Transient failure — the next tick will retry.
+        }
+    }, [setNodes]);
+
+    useEffect(() => {
+        refreshPortStatus();
+        const interval = setInterval(refreshPortStatus, 10000);
+        return () => clearInterval(interval);
+    }, [refreshPortStatus]);
+
+    // Full topology data refresh every 60 seconds (covers new/removed links)
+    useEffect(() => {
+        const interval = setInterval(() => fetchTopologyData(locationId), 60000);
+        return () => clearInterval(interval);
     }, [locationId, fetchTopologyData]);
 
     // Apply auto layout with Dagre

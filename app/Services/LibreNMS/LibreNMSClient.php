@@ -21,9 +21,9 @@ class LibreNMSClient
 
     private string $token;
 
-    private int $timeout = 30;
+    private int $timeout = 8;
 
-    private int $retries = 2;
+    private int $retries = 1;
 
     private int $retryDelay = 500; // ms
 
