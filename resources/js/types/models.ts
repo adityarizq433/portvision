@@ -50,6 +50,7 @@ export interface Device {
     port_down_count: number;
     ports?: Port[];
     port_events?: PortEvent[];
+    device_events?: DeviceEvent[];
     topology_node?: TopologyNode | null;
 }
 
@@ -80,6 +81,27 @@ export interface PortEvent {
     from_status: 'up' | 'down' | 'unknown';
     to_status: 'up' | 'down' | 'unknown';
     occurred_at: string;
+    device?: Device;
+    port?: Port;
+}
+
+export interface DeviceEvent {
+    id: number;
+    device_id: number;
+    from_status: 'up' | 'down' | 'unknown';
+    to_status: 'up' | 'down' | 'unknown';
+    occurred_at: string;
+    device?: Device;
+}
+
+export interface Notification {
+    id: number;
+    type: string;
+    device_id?: number | null;
+    port_id?: number | null;
+    message: string;
+    is_read: boolean;
+    created_at: string;
     device?: Device;
     port?: Port;
 }

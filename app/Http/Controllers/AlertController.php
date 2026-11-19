@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Device;
+use App\Models\Notification;
 use App\Services\LibreNMS\LibreNMSClient;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -22,10 +24,20 @@ class AlertController extends Controller
     {
         [$alerts, $summary] = $this->fetchAndMapAlerts();
 
+        try {
+            $notifications = Notification::with(['device:id,hostname,ip', 'port:id,if_name,if_alias,device_id'])
+                ->latest('created_at')
+                ->limit(50)
+                ->get();
+        } catch (QueryException $e) {
+            $notifications = collect();
+        }
+
         return Inertia::render('Alerts/Index', [
             'alerts' => $alerts,
             'summary' => $summary,
             'librenmsConnected' => $this->client->isConfigured(),
+            'notifications' => $notifications,
         ]);
     }
 
@@ -36,9 +48,19 @@ class AlertController extends Controller
     {
         [$alerts, $summary] = $this->fetchAndMapAlerts();
 
+        try {
+            $notifications = Notification::with(['device:id,hostname,ip', 'port:id,if_name,if_alias,device_id'])
+                ->latest('created_at')
+                ->limit(50)
+                ->get();
+        } catch (QueryException $e) {
+            $notifications = collect();
+        }
+
         return response()->json([
             'summary' => $summary,
             'alerts' => $alerts,
+            'notifications' => $notifications,
         ]);
     }
 

@@ -3,7 +3,7 @@ import StatusBadge from '@/Components/StatusBadge';
 import TierBadge from '@/Components/TierBadge';
 import SwitchVisualizer from '@/Components/SwitchVisualizer';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Device, Location, Port } from '@/types/models';
+import { Device, DeviceEvent, Location, Port } from '@/types/models';
 import { PageProps } from '@/types';
 import { useState, useEffect } from 'react';
 
@@ -11,6 +11,7 @@ interface Props {
     device: Device;
     livePorts: any[] | null;
     allLocations: Location[];
+    deviceEvents?: DeviceEvent[];
 }
 
 const inputCls = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-navy-900 placeholder-gray-500 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-400/20 transition';
@@ -371,6 +372,43 @@ export default function DeviceShow({ device, livePorts, allLocations }: Props) {
                                         {ev.port?.if_alias && (
                                             <span className="text-gray-500">({ev.port.if_alias})</span>
                                         )}
+                                        <span className="text-gray-500">beralih dari</span>
+                                        <span className="uppercase text-gray-600 font-semibold">{ev.from_status}</span>
+                                        <span className="text-gray-500">ke</span>
+                                        <StatusBadge status={ev.to_status} size="sm" />
+                                    </div>
+                                    <span className="text-gray-500 text-[11px]">
+                                        {new Date(ev.occurred_at).toLocaleString('id-ID')}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    }
+                </div>
+            </div>
+
+            {/* Device Events Timeline for this device */}
+            <div className="mt-6 pv-card p-6">
+                <h3 className="text-sm font-bold tracking-wide text-navy-900 uppercase border-b border-gray-100 pb-3">
+                    Log Perubahan Status Perangkat ({device.hostname})
+                </h3>
+
+                <div className="mt-4">
+                    {!device.device_events || device.device_events.length === 0 ? (
+                        <div className="py-8 text-center text-xs text-gray-500 font-sans">
+                            Belum ada catatan transisi status perangkat.
+                        </div>
+                    ) : (
+                        <div className="space-y-2 font-mono text-xs">
+                            {device.device_events.map((ev: DeviceEvent) => (
+                                <div
+                                    key={ev.id}
+                                    className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/70 p-3"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-bold text-navy-900">
+                                            {ev.device?.hostname || 'Perangkat'}
+                                        </span>
                                         <span className="text-gray-500">beralih dari</span>
                                         <span className="uppercase text-gray-600 font-semibold">{ev.from_status}</span>
                                         <span className="text-gray-500">ke</span>

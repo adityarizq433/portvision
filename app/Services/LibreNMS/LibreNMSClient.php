@@ -3,6 +3,7 @@
 namespace App\Services\LibreNMS;
 
 use App\Models\Setting;
+use GuzzleHttp\Psr7\Response as Psr7Response;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -246,7 +247,7 @@ class LibreNMSClient
                 'error' => $e->getMessage(),
             ]);
 
-            return Http::response(null, 503);
+            return new Response(new Psr7Response(503, [], ''));
         }
     }
 

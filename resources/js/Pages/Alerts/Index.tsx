@@ -1,12 +1,13 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
-import { Alert, AlertSummary } from '@/types/models';
+import { Alert, AlertSummary, Notification } from '@/types/models';
 import { useEffect, useRef, useState } from 'react';
 
 interface Props {
     alerts: Alert[];
     summary: AlertSummary;
     librenmsConnected: boolean;
+    notifications?: Notification[];
 }
 
 const severityStyles: Record<string, string> = {
@@ -31,9 +32,10 @@ function formatTime(ts?: string | null): string {
     });
 }
 
-export default function AlertsIndex({ alerts: initialAlerts, summary: initialSummary, librenmsConnected }: Props) {
+export default function AlertsIndex({ alerts: initialAlerts, summary: initialSummary, librenmsConnected, notifications: initialNotifications }: Props) {
     const [alerts, setAlerts] = useState<Alert[]>(initialAlerts);
     const [summary, setSummary] = useState<AlertSummary>(initialSummary);
+    const [notifications, setNotifications] = useState<Notification[]>(initialNotifications ?? []);
     const [filter, setFilter] = useState<'active' | 'all'>('active');
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -48,6 +50,7 @@ export default function AlertsIndex({ alerts: initialAlerts, summary: initialSum
                 const payload = await res.json();
                 setAlerts(payload.alerts ?? []);
                 setSummary(payload.summary ?? { active: 0, critical: 0, warning: 0 });
+                setNotifications(payload.notifications ?? []);
                 setLastUpdated(new Date().toISOString());
             }
         } catch {
@@ -131,6 +134,63 @@ export default function AlertsIndex({ alerts: initialAlerts, summary: initialSum
                     <div className="font-mono text-[11px] font-semibold uppercase tracking-wider text-gray-500">Warning</div>
                     <div className="mt-1 text-2xl font-black text-amber-500">{summary.warning}</div>
                 </div>
+            </div>
+
+            {/* Notifikasi Lokal (Port/Device Up/Down) */}
+            <div className="mb-6 pv-card p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-bold tracking-wide text-navy-900 uppercase">
+                        Notifikasi Lokal
+                    </h3>
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        {notifications.filter((n) => !n.is_read).length} Belum Dibaca
+                    </span>
+                </div>
+
+                {notifications.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-gray-500 font-sans">
+                        Belum ada notifikasi perubahan status port atau perangkat.
+                    </div>
+                ) : (
+                    <div className="space-y-2 font-mono text-xs">
+                        {notifications.map((n) => (
+                            <div
+                                key={n.id}
+                                className={`flex items-center gap-3 rounded-xl border border-gray-100 p-3 ${n.is_read ? 'bg-white' : 'bg-blue-50/50 border-blue-100'}`}
+                            >
+                                <span className={`h-2 w-2 rounded-full ${n.type === 'port_down' || n.type === 'device_down' ? 'bg-red-500' : 'bg-green-500'}`} aria-hidden="true" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-navy-900 leading-tight">{n.message}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-gray-400 text-[11px]">{new Date(n.created_at).toLocaleString('id-ID')}</span>
+                                        {n.device_id && (
+                                            <a
+                                                href={route('devices.show', n.device_id)}
+                                                className="text-xs font-semibold text-primary-600 hover:text-primary-800 transition-colors"
+                                            >
+                                                Lihat perangkat →
+                                            </a>
+                                        )}
+                                        {!n.is_read && (
+                                            <button
+                                                onClick={() => {
+                                                    fetch(route('notifications.read', n.id), { method: 'PATCH' }).then(() => {
+                                                        setNotifications(notifications.map((item) =>
+                                                            item.id === n.id ? { ...item, is_read: true } : item
+                                                        ));
+                                                    });
+                                                }}
+                                                className="text-xs font-medium text-primary-600 hover:text-primary-800"
+                                            >
+                                                Tandai dibaca
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Alert list */}

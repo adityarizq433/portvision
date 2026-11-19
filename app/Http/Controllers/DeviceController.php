@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Device;
 use App\Models\Location;
 use App\Services\LibreNMS\SyncService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redis;
@@ -61,11 +62,16 @@ class DeviceController extends Controller
      */
     public function show(Device $device): Response
     {
-        $device->load([
-            'location',
-            'ports' => fn ($q) => $q->orderBy('is_physical', 'desc')->orderBy('if_name', 'asc'),
-            'portEvents' => fn ($q) => $q->with('port:id,if_name,if_alias')->latest('occurred_at')->limit(30),
-        ]);
+        try {
+            $device->load([
+                'location',
+                'ports' => fn ($q) => $q->orderBy('is_physical', 'desc')->orderBy('if_name', 'asc'),
+                'portEvents' => fn ($q) => $q->with('port:id,if_name,if_alias')->latest('occurred_at')->limit(30),
+                'deviceEvents' => fn ($q) => $q->latest('occurred_at')->limit(30),
+            ]);
+        } catch (QueryException $e) {
+            // Tables may not exist yet until migration runs
+        }
 
         // Retrieve real-time port status from Redis cache if available
         $livePorts = null;

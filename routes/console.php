@@ -15,3 +15,18 @@ Schedule::command('portvision:sync-devices')
 Schedule::command('portvision:sync-devices --links')
     ->everyFiveMinutes()
     ->withoutOverlapping();
+
+// ------------------------------------------------------------------
+// Port status poll — every minute (Laravel scheduler minimum)
+// Interval tuning via LIBRENMS_PORT_POLL_INTERVAL in .env
+// ------------------------------------------------------------------
+Schedule::command('portvision:poll-ports')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+// ------------------------------------------------------------------
+// Cleanup old logs — daily, retain 30 days
+// ------------------------------------------------------------------
+Schedule::command('portvision:cleanup-logs')
+    ->daily()
+    ->withoutOverlapping();

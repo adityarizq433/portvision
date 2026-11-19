@@ -3,7 +3,9 @@
 namespace App\Services\LibreNMS;
 
 use App\Models\Device;
+use App\Models\DeviceEvent;
 use App\Models\Location;
+use App\Models\Notification;
 use App\Models\Port;
 use App\Models\PortEvent;
 use App\Models\Setting;
@@ -49,6 +51,8 @@ class SyncService
 
             $location = $this->resolveLocation($raw['location'] ?? null);
 
+            $newStatus = ($raw['status'] ?? 0) == 1 ? 'up' : 'down';
+
             $device = Device::updateOrCreate(
                 ['librenms_device_id' => $libreId],
                 [
@@ -62,7 +66,7 @@ class SyncService
                     'serial' => $raw['serial'] ?? null,
                     'location_string' => $raw['location'] ?? null,
                     'location_id' => $location?->id,
-                    'status' => ($raw['status'] ?? 0) == 1 ? 'up' : 'down',
+                    'status' => $newStatus,
                     'snmp_disable' => (bool) ($raw['snmp_disable'] ?? false),
                     'last_seen_at' => isset($raw['last_discovered'])
                         ? Carbon::parse($raw['last_discovered'])
@@ -72,7 +76,24 @@ class SyncService
 
             if ($device->wasRecentlyCreated) {
                 $created++;
+            } else {
+                $previousStatus = $device->getOriginal('status');
+                if ($previousStatus !== $newStatus) {
+                    DeviceEvent::create([
+                        'device_id' => $device->id,
+                        'from_status' => $previousStatus,
+                        'to_status' => $newStatus,
+                        'occurred_at' => now(),
+                    ]);
+
+                    Notification::create([
+                        'type' => $newStatus === 'up' ? 'device_up' : 'device_down',
+                        'device_id' => $device->id,
+                        'message' => "Device {$device->hostname} berubah status dari {$previousStatus} menjadi {$newStatus}.",
+                    ]);
+                }
             }
+
             $this->ensureTopologyNode($device, $location);
 
             $synced++;
@@ -165,6 +186,14 @@ class SyncService
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
+
+                    Notification::create([
+                        'type' => $newOperStatus === 'up' ? 'port_up' : 'port_down',
+                        'device_id' => $device->id,
+                        'port_id' => $port->id,
+                        'message' => "Port {$port->getDisplayName()} pada device {$device->hostname} berubah dari {$prevStatus} menjadi {$newOperStatus}.",
+                    ]);
+
                     $changed++;
                 }
 

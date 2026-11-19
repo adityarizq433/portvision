@@ -42,6 +42,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/alerts', [AlertController::class, 'index'])->name('alerts.index');
     Route::get('/api/alerts', [AlertController::class, 'data'])->name('alerts.data');
 
+    // Notifications (local port/device up/down)
+    Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/{notification}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

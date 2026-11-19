@@ -49,6 +49,11 @@ class Device extends Model
         return $this->hasMany(PortEvent::class);
     }
 
+    public function deviceEvents(): HasMany
+    {
+        return $this->hasMany(DeviceEvent::class);
+    }
+
     public function topologyNode(): HasOne
     {
         return $this->hasOne(TopologyNode::class);
