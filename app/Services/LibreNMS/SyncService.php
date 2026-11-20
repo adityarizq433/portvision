@@ -221,13 +221,17 @@ class SyncService
         }
 
         // Write to Redis (expire after poll_interval * 3 for safety)
-        $ttl = (int) Setting::getValue('port_poll_interval', 7) * 3;
-        Redis::pipeline(function ($pipe) use ($portsByDevice, $ttl) {
-            foreach ($portsByDevice as $deviceId => $ports) {
-                $pipe->setex("device:{$deviceId}:ports", $ttl, json_encode(array_values($ports)));
-            }
-            $pipe->set('portvision:last_port_poll', now()->toIso8601String());
-        });
+        try {
+            $ttl = (int) Setting::getValue('port_poll_interval', 7) * 3;
+            Redis::pipeline(function ($pipe) use ($portsByDevice, $ttl) {
+                foreach ($portsByDevice as $deviceId => $ports) {
+                    $pipe->setex("device:{$deviceId}:ports", $ttl, json_encode(array_values($ports)));
+                }
+                $pipe->set('portvision:last_port_poll', now()->toIso8601String());
+            });
+        } catch (\RedisException $e) {
+            Log::warning('Redis poll cache write failed, continuing without cache', ['error' => $e->getMessage()]);
+        }
 
         // Update device port counters
         $this->updateDevicePortCounts($portsByDevice);
@@ -260,6 +264,7 @@ class SyncService
 
         $synced = 0;
         $skipped = [];
+        $unresolved = [];
 
         foreach ($rawLinks as $raw) {
             $sourceDevice = isset($raw['local_device_id'])
@@ -277,29 +282,54 @@ class SyncService
                 ? $deviceMap->get($raw['remote_device_id'])
                 : null;
 
+            $remoteHostname = trim((string) ($raw['remote_hostname'] ?? ''));
+
             // Resolve the remote side by hostname (short name or FQDN) or IP.
-            if (! $targetDevice) {
-                $remoteHostname = trim((string) ($raw['remote_hostname'] ?? ''));
-                if ($remoteHostname !== '') {
-                    $targetDevice = $deviceByHostname->get($this->normalizeHostname($remoteHostname))
-                        ?? $deviceByIp->get($remoteHostname);
-                }
+            if (! $targetDevice && $remoteHostname !== '') {
+                $targetDevice = $deviceByHostname->get($this->normalizeHostname($remoteHostname))
+                    ?? $deviceByIp->get($remoteHostname);
             }
 
-            if (! $sourceDevice || ! $targetDevice || $sourceDevice->id === $targetDevice->id) {
-                $reason = match (true) {
-                    ! $sourceDevice => 'local device not resolved',
-                    ! $targetDevice => 'remote device not resolved (remote_hostname: '.($raw['remote_hostname'] ?? 'null').')',
-                    default => 'self link',
-                };
-                $skipped[] = $reason;
+            // Self-link protection
+            if ($sourceDevice && $targetDevice && $sourceDevice->id === $targetDevice->id) {
+                $skipped[] = 'self link';
+                continue;
+            }
 
+            // Cannot create a link without a known source device.
+            if (! $sourceDevice) {
+                $skipped[] = 'local device not resolved';
                 continue;
             }
 
             $sourcePort = isset($raw['local_port_id']) ? $portMap->get($raw['local_port_id']) : null;
-            $targetPort = isset($raw['remote_port_id']) ? $portMap->get($raw['remote_port_id']) : null;
             $localPortName = $raw['local_port_name'] ?? $raw['local_port'] ?? $sourcePort?->if_name ?? null;
+
+            // If target device is not in local DB, record an unresolved link
+            // so the operator can see which neighbor hostname is missing.
+            if (! $targetDevice) {
+                $unresolved[] = $remoteHostname ?: 'unknown';
+
+                TopologyLink::updateOrCreate(
+                    [
+                        'source_device_id' => $sourceDevice->id,
+                        'target_device_id' => null,
+                        'source_type' => 'lldp',
+                        'unresolved_hostname' => $remoteHostname ?: 'unknown',
+                    ],
+                    [
+                        'target_port_id' => null,
+                        'location_id' => $sourceDevice->location_id,
+                        'status' => 'suggested',
+                        'local_port_name' => $localPortName,
+                        'remote_port_name' => $raw['remote_port_name'] ?? $raw['remote_port'] ?? null,
+                    ]
+                );
+                $synced++;
+                continue;
+            }
+
+            $targetPort = isset($raw['remote_port_id']) ? $portMap->get($raw['remote_port_id']) : null;
             $remotePortName = $raw['remote_port_name'] ?? $raw['remote_port'] ?? $targetPort?->if_name ?? null;
 
             // If target port is not matched by ID, try resolving by remote port name
@@ -344,6 +374,7 @@ class SyncService
                     'source_device_id' => $sourceDevice->id,
                     'target_device_id' => $targetDevice->id,
                     'source_type' => $sourceType,
+                    'unresolved_hostname' => null,
                 ],
                 [
                     'source_port_id' => $sourcePort?->id,
@@ -361,7 +392,16 @@ class SyncService
             Log::info('Link sync: skipped links', ['reasons' => array_count_values($skipped)]);
         }
 
-        return ['ok' => true, 'synced' => $synced, 'skipped' => count($skipped)];
+        if ($unresolved) {
+            Log::info('Link sync: unresolved neighbor hostnames', ['hostnames' => array_count_values($unresolved)]);
+        }
+
+        return [
+            'ok' => true,
+            'synced' => $synced,
+            'skipped' => count($skipped),
+            'unresolved' => count($unresolved),
+        ];
     }
 
     /**

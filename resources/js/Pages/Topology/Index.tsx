@@ -98,7 +98,7 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
-    const [saveMessage, setSaveMessage] = useState<string | null>(null);
+    const [saveMessage, setSaveMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
     const [showIp, setShowIp] = useState(false);
     const showIpRef = useRef(false);
@@ -119,7 +119,7 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
     const deleteLink = useCallback(
         async (edgeId: string, linkId?: number) => {
             if (!isAdmin) {
-                setSaveMessage('Hanya administrator yang dapat menghapus tautan.');
+                setSaveMessage({ message: 'Hanya administrator yang dapat menghapus tautan.', type: 'error' });
                 setTimeout(() => setSaveMessage(null), 3000);
                 return;
             }
@@ -140,16 +140,16 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
                         },
                     });
                     if (res.ok) {
-                        setSaveMessage('Tautan kabel berhasil dihapus.');
+                        setSaveMessage({ message: 'Tautan kabel berhasil dihapus.', type: 'success' });
                         setTimeout(() => setSaveMessage(null), 3000);
                     } else {
                         const err = await res.json().catch(() => ({}));
-                        setSaveMessage(`Gagal menghapus tautan: ${err.message || 'Kesalahan server'}`);
+                        setSaveMessage({ message: `Gagal menghapus tautan: ${err.message || 'Kesalahan server'}`, type: 'error' });
                         setTimeout(() => setSaveMessage(null), 4000);
                     }
                 } catch (err) {
                     console.error('Failed to delete link', err);
-                    setSaveMessage('Gagal menghapus tautan karena masalah jaringan.');
+                    setSaveMessage({ message: 'Gagal menghapus tautan karena masalah jaringan.', type: 'error' });
                     setTimeout(() => setSaveMessage(null), 4000);
                 }
             }
@@ -237,9 +237,9 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
             }
         } catch (err) {
             const aborted = err instanceof DOMException && err.name === 'AbortError';
-            setSaveMessage(aborted
+            setSaveMessage({ message: aborted
                 ? 'Server tidak merespons dalam 15 detik. Periksa koneksi atau coba lagi.'
-                : 'Gagal memuat data topologi. Periksa koneksi dan coba lagi.');
+                : 'Gagal memuat data topologi. Periksa koneksi dan coba lagi.', type: 'error' });
             setTimeout(() => setSaveMessage(null), 4000);
         } finally {
             clearTimeout(timeoutId);
@@ -333,15 +333,15 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
             });
 
             if (res.ok) {
-                setSaveMessage('Tata letak posisi berhasil disimpan.');
+                setSaveMessage({ message: 'Tata letak posisi berhasil disimpan.', type: 'success' });
                 setTimeout(() => setSaveMessage(null), 3000);
             } else {
-                setSaveMessage('Gagal menyimpan tata letak posisi.');
+                setSaveMessage({ message: 'Gagal menyimpan tata letak posisi.', type: 'error' });
                 setTimeout(() => setSaveMessage(null), 3000);
             }
         } catch (err) {
             console.error('Save failed', err);
-            setSaveMessage('Gagal menyimpan tata letak karena kesalahan jaringan.');
+            setSaveMessage({ message: 'Gagal menyimpan tata letak karena kesalahan jaringan.', type: 'error' });
             setTimeout(() => setSaveMessage(null), 3000);
         } finally {
             setIsSaving(false);
@@ -385,7 +385,7 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
             setEdges((eds) => addEdge(newEdge, eds));
 
             if (!isAdmin) {
-                setSaveMessage('Hanya administrator yang dapat menyimpan tautan topologi ke basis data.');
+                setSaveMessage({ message: 'Hanya administrator yang dapat menyimpan tautan topologi ke basis data.', type: 'error' });
                 setTimeout(() => setSaveMessage(null), 3500);
                 return;
             }
@@ -430,17 +430,17 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
                             )
                         );
                     }
-                    setSaveMessage('Tautan berhasil dihubungkan dan disimpan.');
+                    setSaveMessage({ message: 'Tautan berhasil dihubungkan dan disimpan.', type: 'success' });
                     setTimeout(() => setSaveMessage(null), 3500);
                 } else {
                     const err = await res.json().catch(() => ({}));
-                    setSaveMessage(`Gagal menyimpan tautan: ${err.message || 'Kesalahan validasi'}`);
+                    setSaveMessage({ message: `Gagal menyimpan tautan: ${err.message || 'Kesalahan validasi'}`, type: 'error' });
                     setTimeout(() => setSaveMessage(null), 4000);
                     setEdges((eds) => eds.filter((e) => e.id !== tempId));
                 }
             } catch (err) {
                 console.error('Failed to save link', err);
-                setSaveMessage('Gagal menyimpan tautan karena kesalahan jaringan.');
+                setSaveMessage({ message: 'Gagal menyimpan tautan karena kesalahan jaringan.', type: 'error' });
                 setTimeout(() => setSaveMessage(null), 4000);
                 setEdges((eds) => eds.filter((e) => e.id !== tempId));
             }
@@ -454,7 +454,7 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
             if (!newConnection.source || !newConnection.target) return;
             if (newConnection.source === newConnection.target) return;
             if (!isAdmin) {
-                setSaveMessage('Hanya administrator yang dapat mengubah tautan.');
+                setSaveMessage({ message: 'Hanya administrator yang dapat mengubah tautan.', type: 'error' });
                 setTimeout(() => setSaveMessage(null), 3500);
                 return;
             }
@@ -487,10 +487,10 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
                     }),
                 });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                setSaveMessage('Titik tautan diperbarui.');
+                setSaveMessage({ message: 'Titik tautan diperbarui.', type: 'success' });
                 setTimeout(() => setSaveMessage(null), 3000);
             } catch {
-                setSaveMessage('Gagal menyimpan titik tautan.');
+                setSaveMessage({ message: 'Gagal menyimpan titik tautan.', type: 'error' });
                 setTimeout(() => setSaveMessage(null), 3000);
             }
         },
@@ -618,13 +618,20 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
         >
             <Head title="Peta Topologi" />
 
-            {/* Notification Alert if saved */}
+            {/* Notification Alert */}
             {saveMessage && (
-                <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-xs font-semibold text-green-800 flex items-center gap-2">
+                <div className={`mb-4 rounded-xl border px-4 py-2.5 text-xs font-semibold flex items-center gap-2 ${
+                    saveMessage.type === 'error'
+                        ? 'border-red-200 bg-red-50 text-red-800'
+                        : 'border-green-200 bg-green-50 text-green-800'
+                }`}>
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        {saveMessage.type === 'error'
+                            ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            : <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        }
                     </svg>
-                    <span>{saveMessage}</span>
+                    <span>{saveMessage.message}</span>
                 </div>
             )}
 

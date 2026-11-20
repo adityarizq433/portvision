@@ -12,7 +12,7 @@ class TopologyLink extends Model
         'source_port_id', 'target_port_id',
         'location_id', 'source_type', 'status',
         'is_hidden', 'local_port_name', 'remote_port_name',
-        'source_handle', 'target_handle',
+        'source_handle', 'target_handle', 'unresolved_hostname',
     ];
 
     protected $casts = [
