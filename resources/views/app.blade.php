@@ -6,12 +6,14 @@
         <meta name="description" content="PortVision NOC: dashboard pemantauan switch dan port real-time untuk tim operasi jaringan.">
         <meta name="theme-color" content="#1E2D4F">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+        <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+        <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 
         <title inertia>{{ config('app.name', 'PortVision') }}</title>
 
         <!-- Scripts -->
         @routes
-        @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/Pages/{$page['component']}.tsx"])
         @inertiaHead
     </head>

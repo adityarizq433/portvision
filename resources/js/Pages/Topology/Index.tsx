@@ -179,8 +179,8 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
                     id: n.id,
                     type: 'deviceNode',
                     position: {
-                        x: n.position.x || Math.random() * 600,
-                        y: n.position.y || Math.random() * 400,
+                        x: n.position.x ?? 150,
+                        y: n.position.y ?? 100,
                     },
                     data: {
                         id: n.data.id,
@@ -315,10 +315,11 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
         if (!isAdmin) return;
         setIsSaving(true);
         try {
-            const positions = nodes.map((node) => ({
-                id: node.data.id,
-                position_x: Math.round(node.position.x),
-                position_y: Math.round(node.position.y),
+            const nodesData = nodes.map((node) => ({
+                device_id: (node.data as any).id,
+                x: Math.round(node.position.x),
+                y: Math.round(node.position.y),
+                is_locked: (node.data as any).is_locked ?? false,
             }));
 
             const res = await fetch('/api/topology/positions', {
@@ -329,7 +330,7 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
                         (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ positions }),
+                body: JSON.stringify({ nodes: nodesData }),
             });
 
             if (res.ok) {
@@ -354,8 +355,8 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
             if (!connection.source || !connection.target) return;
             if (connection.source === connection.target) return;
 
-            const sourceDeviceId = parseInt(connection.source.replace('dev-', ''), 10);
-            const targetDeviceId = parseInt(connection.target.replace('dev-', ''), 10);
+            const sourceDeviceId = parseInt(connection.source.replace('device-', ''), 10);
+            const targetDeviceId = parseInt(connection.target.replace('device-', ''), 10);
 
             if (isNaN(sourceDeviceId) || isNaN(targetDeviceId)) return;
 
@@ -459,8 +460,8 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
                 return;
             }
             const linkId = (oldEdge.data as any)?.id as number | undefined;
-            const sourceDeviceId = parseInt(newConnection.source.replace('dev-', ''), 10);
-            const targetDeviceId = parseInt(newConnection.target.replace('dev-', ''), 10);
+            const sourceDeviceId = parseInt(newConnection.source.replace('device-', ''), 10);
+            const targetDeviceId = parseInt(newConnection.target.replace('device-', ''), 10);
             if (isNaN(sourceDeviceId) || isNaN(targetDeviceId)) return;
             setEdges((eds) =>
                 eds.map((e) =>
@@ -487,6 +488,24 @@ export default function TopologyIndex({ locations, selectedLocationId }: Props) 
                     }),
                 });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const newLinkId = data.link?.id as number | undefined;
+                if (newLinkId && newLinkId !== linkId) {
+                    await fetch(`/api/topology/links/${linkId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                            'Accept': 'application/json',
+                        },
+                    });
+                    setEdges((eds) =>
+                        eds.map((e) =>
+                            e.id === oldEdge.id
+                                ? { ...e, id: `link-${newLinkId}`, data: { ...e.data, id: newLinkId } }
+                                : e
+                        )
+                    );
+                }
                 setSaveMessage({ message: 'Titik tautan diperbarui.', type: 'success' });
                 setTimeout(() => setSaveMessage(null), 3000);
             } catch {

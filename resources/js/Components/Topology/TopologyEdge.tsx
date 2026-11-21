@@ -42,9 +42,9 @@ export default function TopologyEdge({
     });
 
     const labelText =
-        edgeData.source_port && edgeData.target_port
-            ? `${edgeData.source_port} ↔ ${edgeData.target_port}`
-            : 'Tautan Manual';
+        edgeData.source_type === 'manual'
+            ? 'Tautan Manual'
+            : `${edgeData.source_port ?? 'Port'} ↔ ${edgeData.target_port ?? 'Port'}`;
 
     const handleDelete = (e: React.MouseEvent) => {
         e.stopPropagation();

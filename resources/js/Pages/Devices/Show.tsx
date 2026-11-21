@@ -383,7 +383,7 @@ export default function DeviceShow({ device, livePorts, allLocations }: Props) {
                                 </div>
                             ))}
                         </div>
-                    }
+                    )}
                 </div>
             </div>
 
