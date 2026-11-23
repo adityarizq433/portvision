@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Notification extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = [
         'type', 'device_id', 'port_id', 'message', 'is_read',
     ];
