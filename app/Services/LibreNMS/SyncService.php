@@ -191,7 +191,7 @@ class SyncService
                         'type' => $newOperStatus === 'up' ? 'port_up' : 'port_down',
                         'device_id' => $device->id,
                         'port_id' => $port->id,
-                        'message' => "Port {$port->getDisplayName()} pada device {$device->hostname} berubah dari {$prevStatus} menjadi {$newOperStatus}.",
+                        'message' => "Port {$port->display_name} pada device {$device->hostname} berubah dari {$prevStatus} menjadi {$newOperStatus}.",
                     ]);
 
                     $changed++;
